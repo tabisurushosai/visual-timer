@@ -1,5 +1,7 @@
 import { createTimerController, type TimerViewModel } from "./core/timerController";
 import { createRemainingSectorPath } from "./core/timerGeometry";
+import { addTimerPreset, type TimerPreset } from "./core/presets";
+import { getTimerPresets, setTimerPresets } from "./storage";
 
 const app = document.querySelector<HTMLDivElement>("#app");
 
@@ -24,6 +26,14 @@ app.innerHTML = `
           <input id="secondsInput" type="number" min="0" max="59" step="1" inputmode="numeric" value="${initialView.durationSeconds}" />
         </label>
       </div>
+    </section>
+
+    <section class="preset-card" aria-labelledby="preset-title">
+      <div class="preset-card__header">
+        <h2 id="preset-title">プリセット</h2>
+        <button id="savePresetButton" class="secondary-button" type="button">保存</button>
+      </div>
+      <div id="presetList" class="preset-list" role="list" aria-label="保存した時間"></div>
     </section>
 
     <section class="timer-face" aria-label="残り時間">
@@ -69,6 +79,18 @@ style.textContent = `
     gap: 10px;
   }
 
+  .preset-card {
+    display: grid;
+    gap: 8px;
+  }
+
+  .preset-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
   h2 {
     margin: 0;
     font-size: 14px;
@@ -99,6 +121,12 @@ style.textContent = `
     background: #ffffff;
     font: inherit;
     font-size: 16px;
+  }
+
+  .preset-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
   }
 
   .timer-face {
@@ -181,11 +209,30 @@ style.textContent = `
   button:hover {
     background: #1c568f;
   }
+
+  .secondary-button,
+  .preset-button {
+    min-height: 34px;
+    color: #12355b;
+    background: #dbeafe;
+  }
+
+  .secondary-button:hover,
+  .preset-button:hover {
+    background: #bfdbfe;
+  }
+
+  .preset-button {
+    min-width: 58px;
+    padding: 0 10px;
+  }
 `;
 document.head.append(style);
 
 const minutesInput = document.querySelector<HTMLInputElement>("#minutesInput");
 const secondsInput = document.querySelector<HTMLInputElement>("#secondsInput");
+const presetList = document.querySelector<HTMLDivElement>("#presetList");
+const savePresetButton = document.querySelector<HTMLButtonElement>("#savePresetButton");
 const timerFace = document.querySelector<HTMLElement>(".timer-face");
 const remainingSector = document.querySelector<SVGPathElement>("#remainingSector");
 const remainingTime = document.querySelector<HTMLOutputElement>("#remainingTime");
@@ -200,6 +247,8 @@ const timerGeometry = {
   centerY: 60,
   radius: 54,
 };
+
+let presets: TimerPreset[] = [];
 
 function readTimerInputValues() {
   return {
@@ -233,6 +282,34 @@ function updateTimerDisplay(view: TimerViewModel): void {
   if (pauseButton) {
     pauseButton.disabled = !view.isRunning;
   }
+}
+
+function writeDurationInputs(view: TimerViewModel): void {
+  if (minutesInput) {
+    minutesInput.value = String(view.durationMinutes);
+  }
+
+  if (secondsInput) {
+    secondsInput.value = String(view.durationSeconds);
+  }
+}
+
+function renderPresets(): void {
+  if (!presetList) {
+    return;
+  }
+
+  presetList.replaceChildren(
+    ...presets.map((preset) => {
+      const button = document.createElement("button");
+      button.className = "preset-button";
+      button.type = "button";
+      button.textContent = preset.label;
+      button.dataset.totalSeconds = String(preset.totalSeconds);
+
+      return button;
+    }),
+  );
 }
 
 function syncTimerFromInputs(): void {
@@ -282,5 +359,36 @@ resetButton?.addEventListener("click", () => {
   stopTicking();
   updateTimerDisplay(timerController.resetFromInputValues(readTimerInputValues()));
 });
+presetList?.addEventListener("click", (event) => {
+  const presetButton = (event.target as Element).closest<HTMLButtonElement>(".preset-button");
+
+  if (!presetButton) {
+    return;
+  }
+
+  const totalSeconds = Number(presetButton.dataset.totalSeconds);
+  const view = timerController.setDurationFromInputValues({
+    minutes: String(Math.floor(totalSeconds / 60)),
+    seconds: String(totalSeconds % 60),
+  });
+
+  stopTicking();
+  writeDurationInputs(view);
+  updateTimerDisplay(view);
+});
+savePresetButton?.addEventListener("click", async () => {
+  const view = timerController.setDurationFromInputValues(readTimerInputValues());
+
+  stopTicking();
+  presets = addTimerPreset(presets, view.totalSeconds);
+  await setTimerPresets(presets);
+  renderPresets();
+  writeDurationInputs(view);
+  updateTimerDisplay(view);
+});
 
 updateTimerDisplay(initialView);
+void getTimerPresets().then((storedPresets) => {
+  presets = storedPresets;
+  renderPresets();
+});
