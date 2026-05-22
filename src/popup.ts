@@ -71,8 +71,13 @@ document.title = messages.appName;
 
 app.innerHTML = `
   <main class="timer-shell" aria-label="${messages.appName}">
+    <header class="app-header">
+      <span class="app-header__emoji" aria-hidden="true">🌈</span>
+      <h1>${messages.appName}</h1>
+    </header>
+
     <section class="time-card" aria-labelledby="time-settings-title">
-      <h2 id="time-settings-title">${messages.timeSettingsTitle}</h2>
+      <h2 id="time-settings-title"><span aria-hidden="true">⏱️</span>${messages.timeSettingsTitle}</h2>
       <div class="time-inputs">
         <label>
           <span>${messages.minutesLabel}</span>
@@ -87,7 +92,7 @@ app.innerHTML = `
 
     <section class="preset-card" aria-labelledby="preset-title">
       <div class="preset-card__header">
-        <h2 id="preset-title">${messages.presetsTitle}</h2>
+        <h2 id="preset-title"><span aria-hidden="true">⭐</span>${messages.presetsTitle}</h2>
         <button id="savePresetButton" class="secondary-button" type="button">${messages.savePresetButton}</button>
       </div>
       <p id="presetLimitMessage" class="notice" hidden>${messages.premiumPresetLimitMessage}</p>
@@ -96,7 +101,7 @@ app.innerHTML = `
 
     <section class="premium-card" aria-labelledby="premium-title">
       <div class="premium-card__header">
-        <h2 id="premium-title">${messages.premiumTitle}</h2>
+        <h2 id="premium-title"><span aria-hidden="true">🎁</span>${messages.premiumTitle}</h2>
         <a id="premiumCheckoutLink" class="link-button" href="${STRIPE_CHECKOUT_URL}" target="_blank" rel="noreferrer">${messages.premiumCheckoutButton}</a>
       </div>
       <p id="premiumStatus" class="notice"></p>
@@ -104,7 +109,7 @@ app.innerHTML = `
     </section>
 
     <section class="theme-card" aria-labelledby="theme-title">
-      <h2 id="theme-title">${messages.themeTitle}</h2>
+      <h2 id="theme-title"><span aria-hidden="true">🎨</span>${messages.themeTitle}</h2>
       <p id="themeLockedLabel" class="notice">${messages.themeLockedLabel}</p>
       <div id="themeList" class="theme-list" role="list"></div>
     </section>
@@ -130,40 +135,68 @@ app.innerHTML = `
 const style = document.createElement("style");
 style.textContent = `
   :root {
-    --timer-accent: #2f80ed;
-    --timer-track: #dbe4ea;
-    --timer-finish: #f2994a;
-    color: #1f2933;
-    background: #f8fafc;
+    --timer-accent: #2684ff;
+    --timer-track: #d9f0ff;
+    --timer-finish: #ff9f43;
+    --surface: #ffffff;
+    --surface-soft: #fff7d6;
+    --border-soft: #cfe7ff;
+    color: #243447;
+    background: #f7fbff;
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   }
 
   body {
     width: 320px;
     margin: 0;
-    background: #f8fafc;
+    background: #f7fbff;
   }
 
   .timer-shell {
     display: grid;
-    gap: 14px;
+    gap: 12px;
     padding: 14px;
   }
 
-  .time-card {
+  .app-header {
     display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
     gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--border-soft);
+    border-radius: 8px;
+    background: #eaf7ff;
   }
 
-  .preset-card {
+  .app-header__emoji {
     display: grid;
-    gap: 8px;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 8px;
+    background: #ffffff;
+    font-size: 28px;
   }
 
+  h1 {
+    margin: 0;
+    color: #12355b;
+    font-size: 20px;
+    font-weight: 900;
+    line-height: 1.15;
+  }
+
+  .time-card,
+  .preset-card,
   .premium-card,
   .theme-card {
     display: grid;
-    gap: 8px;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid var(--border-soft);
+    border-radius: 8px;
+    background: var(--surface);
   }
 
   .preset-card__header,
@@ -175,9 +208,13 @@ style.textContent = `
   }
 
   h2 {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     margin: 0;
-    font-size: 14px;
-    font-weight: 700;
+    color: #12355b;
+    font-size: 15px;
+    font-weight: 800;
   }
 
   .time-inputs {
@@ -189,21 +226,23 @@ style.textContent = `
   label {
     display: grid;
     gap: 6px;
-    font-size: 12px;
-    font-weight: 700;
+    color: #334e68;
+    font-size: 13px;
+    font-weight: 800;
   }
 
   input {
     box-sizing: border-box;
     width: 100%;
-    min-height: 40px;
-    border: 1px solid #ccd5df;
+    min-height: 48px;
+    border: 2px solid #b9dcff;
     border-radius: 8px;
-    padding: 8px 10px;
+    padding: 8px 12px;
     color: #111827;
-    background: #ffffff;
+    background: #fafdff;
     font: inherit;
-    font-size: 16px;
+    font-size: 18px;
+    font-weight: 800;
   }
 
   .preset-list {
@@ -214,7 +253,7 @@ style.textContent = `
 
   .notice {
     margin: 0;
-    color: #52616f;
+    color: #486581;
     font-size: 12px;
     line-height: 1.4;
   }
@@ -229,14 +268,16 @@ style.textContent = `
     display: grid;
     place-items: center;
     position: relative;
-    min-height: 190px;
+    min-height: 206px;
+    border: 1px solid #ffe08a;
     border-radius: 8px;
+    background: var(--surface-soft);
     transition: background 160ms ease;
   }
 
   .timer-ring {
-    width: 184px;
-    height: 184px;
+    width: 196px;
+    height: 196px;
   }
 
   .timer-ring__track {
@@ -249,7 +290,7 @@ style.textContent = `
   }
 
   .timer-face.is-finished {
-    background: #fff2cc;
+    background: #fff0c2;
   }
 
   .timer-face.is-finished .timer-ring__track {
@@ -262,10 +303,10 @@ style.textContent = `
 
   .remaining-time {
     position: absolute;
-    font-size: 34px;
+    font-size: 38px;
     font-weight: 800;
     line-height: 1;
-    color: #111827;
+    color: #102a43;
   }
 
   .finish-message {
@@ -273,7 +314,7 @@ style.textContent = `
     margin: 0;
     transform: translateY(46px);
     color: #9a3412;
-    font-size: 32px;
+    font-size: 34px;
     font-weight: 900;
     line-height: 1;
     opacity: 0;
@@ -295,22 +336,22 @@ style.textContent = `
     display: inline-grid;
     place-items: center;
     box-sizing: border-box;
-    min-height: 40px;
+    min-height: 48px;
     border: 0;
     border-radius: 8px;
-    padding: 0 10px;
+    padding: 0 12px;
     color: #ffffff;
-    background: #2364aa;
+    background: #1f73d1;
     font: inherit;
-    font-size: 13px;
-    font-weight: 700;
+    font-size: 14px;
+    font-weight: 800;
     text-decoration: none;
     cursor: pointer;
   }
 
   button:hover,
   .link-button:hover {
-    background: #1c568f;
+    background: #1557a6;
   }
 
   button:disabled {
@@ -321,9 +362,9 @@ style.textContent = `
   .secondary-button,
   .preset-button,
   .theme-button {
-    min-height: 34px;
+    min-height: 44px;
     color: #12355b;
-    background: #dbeafe;
+    background: #e3f2ff;
   }
 
   .secondary-button:hover,
@@ -333,14 +374,14 @@ style.textContent = `
   }
 
   .preset-button {
-    min-width: 58px;
+    min-width: 66px;
     padding: 0 10px;
   }
 
   .theme-button {
-    gap: 5px;
+    gap: 6px;
     min-width: 0;
-    padding: 6px;
+    padding: 8px 6px;
   }
 
   .theme-button[aria-pressed="true"] {
@@ -349,8 +390,8 @@ style.textContent = `
   }
 
   .theme-swatch {
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
     border-radius: 999px;
     border: 2px solid #ffffff;
     box-shadow: 0 0 0 1px #ccd5df;
