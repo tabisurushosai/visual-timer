@@ -1,7 +1,7 @@
 import { createTimerController, type TimerViewModel } from "./core/timerController";
 import { createRemainingSectorPath } from "./core/timerGeometry";
 import { addTimerPreset, type TimerPreset } from "./core/presets";
-import { getTimerPresets, setTimerPresets } from "./storage";
+import { getLastTimerDurationSeconds, getTimerPresets, setLastTimerDurationSeconds, setTimerPresets } from "./storage";
 
 const app = document.querySelector<HTMLDivElement>("#app");
 
@@ -314,7 +314,10 @@ function renderPresets(): void {
 
 function syncTimerFromInputs(): void {
   stopTicking();
-  updateTimerDisplay(timerController.setDurationFromInputValues(readTimerInputValues()));
+  const view = timerController.setDurationFromInputValues(readTimerInputValues());
+
+  void setLastTimerDurationSeconds(view.totalSeconds);
+  updateTimerDisplay(view);
 }
 
 function stopTicking(): void {
@@ -345,6 +348,8 @@ minutesInput?.addEventListener("input", syncTimerFromInputs);
 secondsInput?.addEventListener("input", syncTimerFromInputs);
 startButton?.addEventListener("click", () => {
   const view = timerController.startFromInputValues(readTimerInputValues());
+
+  void setLastTimerDurationSeconds(view.totalSeconds);
   updateTimerDisplay(view);
 
   if (view.isRunning) {
@@ -357,7 +362,10 @@ pauseButton?.addEventListener("click", () => {
 });
 resetButton?.addEventListener("click", () => {
   stopTicking();
-  updateTimerDisplay(timerController.resetFromInputValues(readTimerInputValues()));
+  const view = timerController.resetFromInputValues(readTimerInputValues());
+
+  void setLastTimerDurationSeconds(view.totalSeconds);
+  updateTimerDisplay(view);
 });
 presetList?.addEventListener("click", (event) => {
   const presetButton = (event.target as Element).closest<HTMLButtonElement>(".preset-button");
@@ -373,6 +381,7 @@ presetList?.addEventListener("click", (event) => {
   });
 
   stopTicking();
+  void setLastTimerDurationSeconds(view.totalSeconds);
   writeDurationInputs(view);
   updateTimerDisplay(view);
 });
@@ -381,6 +390,7 @@ savePresetButton?.addEventListener("click", async () => {
 
   stopTicking();
   presets = addTimerPreset(presets, view.totalSeconds);
+  await setLastTimerDurationSeconds(view.totalSeconds);
   await setTimerPresets(presets);
   renderPresets();
   writeDurationInputs(view);
@@ -388,6 +398,19 @@ savePresetButton?.addEventListener("click", async () => {
 });
 
 updateTimerDisplay(initialView);
+void getLastTimerDurationSeconds().then((lastTimerDurationSeconds) => {
+  if (lastTimerDurationSeconds === null) {
+    return;
+  }
+
+  const view = timerController.setDurationFromInputValues({
+    minutes: String(Math.floor(lastTimerDurationSeconds / 60)),
+    seconds: String(lastTimerDurationSeconds % 60),
+  });
+
+  writeDurationInputs(view);
+  updateTimerDisplay(view);
+});
 void getTimerPresets().then((storedPresets) => {
   presets = storedPresets;
   renderPresets();
