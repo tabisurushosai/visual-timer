@@ -13,5 +13,18 @@
   "controlsLabel": { "message": "Controls" },
   "startButton": { "message": "Start" },
   "pauseButton": { "message": "Pause" },
-  "resetButton": { "message": "Reset" }
+  "resetButton": { "message": "Reset" },
+  "premiumTitle": { "message": "Premium" },
+  "premiumTrialButton": { "message": "7-day trial" },
+  "premiumCheckoutButton": { "message": "Buy" },
+  "premiumFreeStatus": { "message": "Free: Premium unlocks multiple presets and color themes" },
+  "premiumTrialStatus": { "message": "Trial active: $DAYS$ days left" },
+  "premiumActiveStatus": { "message": "Premium active" },
+  "premiumExpiredStatus": { "message": "Trial ended" },
+  "premiumPresetLimitMessage": { "message": "Multiple presets are available with Premium" },
+  "themeTitle": { "message": "Theme" },
+  "themeLockedLabel": { "message": "Premium unlocks color themes" },
+  "themeSky": { "message": "Sky" },
+  "themeLeaf": { "message": "Leaf" },
+  "themeBerry": { "message": "Berry" }
 }

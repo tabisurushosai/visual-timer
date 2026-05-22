@@ -1,4 +1,6 @@
 import { normalizeTimerPresets, type TimerPreset } from "./core/presets";
+import { normalizePremiumAccess, type PremiumAccess } from "./core/premium";
+import { normalizeThemeId, type TimerThemeId } from "./core/themes";
 import { normalizeDurationSeconds } from "./core/timer";
 
 // storage.ts : 保存アダプタ。拡張では chrome.storage.local。将来のPWAは localStorage 等に差し替えるだけ。
@@ -11,6 +13,8 @@ export interface Store {
 
 const PRESETS_KEY = "timerPresets";
 const LAST_TIMER_DURATION_KEY = "lastTimerDurationSeconds";
+const PREMIUM_ACCESS_KEY = "premiumAccess";
+const TIMER_THEME_KEY = "timerTheme";
 
 export const store: Store = {
   get<T>(key: string) {
@@ -47,4 +51,24 @@ export async function getLastTimerDurationSeconds(): Promise<number | null> {
 
 export async function setLastTimerDurationSeconds(totalSeconds: number): Promise<void> {
   await store.set(LAST_TIMER_DURATION_KEY, normalizeDurationSeconds(totalSeconds));
+}
+
+export async function getPremiumAccess(): Promise<PremiumAccess> {
+  const access = await store.get<unknown>(PREMIUM_ACCESS_KEY);
+
+  return normalizePremiumAccess(access);
+}
+
+export async function setPremiumAccess(access: PremiumAccess): Promise<void> {
+  await store.set(PREMIUM_ACCESS_KEY, normalizePremiumAccess(access));
+}
+
+export async function getTimerThemeId(): Promise<TimerThemeId> {
+  const themeId = await store.get<unknown>(TIMER_THEME_KEY);
+
+  return normalizeThemeId(themeId);
+}
+
+export async function setTimerThemeId(themeId: TimerThemeId): Promise<void> {
+  await store.set(TIMER_THEME_KEY, normalizeThemeId(themeId));
 }

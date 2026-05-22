@@ -13,5 +13,18 @@
   "controlsLabel": { "message": "操作" },
   "startButton": { "message": "開始" },
   "pauseButton": { "message": "一時停止" },
-  "resetButton": { "message": "リセット" }
+  "resetButton": { "message": "リセット" },
+  "premiumTitle": { "message": "Premium" },
+  "premiumTrialButton": { "message": "7日間トライアル" },
+  "premiumCheckoutButton": { "message": "購入" },
+  "premiumFreeStatus": { "message": "無料: Premiumで複数プリセットと色テーマを使えます" },
+  "premiumTrialStatus": { "message": "トライアル中: 残り $DAYS$ 日" },
+  "premiumActiveStatus": { "message": "Premium 有効" },
+  "premiumExpiredStatus": { "message": "トライアルは終了しました" },
+  "premiumPresetLimitMessage": { "message": "複数プリセットはPremiumで使えます" },
+  "themeTitle": { "message": "テーマ" },
+  "themeLockedLabel": { "message": "Premiumで色テーマを変更できます" },
+  "themeSky": { "message": "そら" },
+  "themeLeaf": { "message": "はっぱ" },
+  "themeBerry": { "message": "ベリー" }
 }
