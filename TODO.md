@@ -1,7 +1,7 @@
 # visual-timer TODO
 - [x] T001: src/popup.ts に popup骨格(時間設定 + 円表示 + 操作ボタン)を構築
 - [x] T1B: 保存は src/storage.ts の store(get/set/remove)経由に統一し、状態・ロジックは src/core/ に chrome.*/DOM 非依存で分離する(将来PWA移植のため)
-- [ ] T002: 縮む扇形(SVGまたはcanvas)で残り時間を描画
+- [x] T002: 縮む扇形(SVGまたはcanvas)で残り時間を描画
 - [ ] T003: 開始/一時停止/リセット、残り数字表示
 - [ ] T004: 終了時の合図(色変化+「おわり」大表示、音は任意・既定オフ)
 - [ ] T005: プリセット時間の保存・選択を chrome.storage.local に

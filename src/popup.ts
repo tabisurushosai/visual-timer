@@ -1,4 +1,5 @@
 import { createTimerController, type TimerViewModel } from "./core/timerController";
+import { createRemainingSectorPath } from "./core/timerGeometry";
 
 const app = document.querySelector<HTMLDivElement>("#app");
 
@@ -29,7 +30,7 @@ app.innerHTML = `
       <svg class="timer-ring" viewBox="0 0 120 120" role="img" aria-labelledby="timerTitle">
         <title id="timerTitle">残り時間の円表示</title>
         <circle class="timer-ring__track" cx="60" cy="60" r="54"></circle>
-        <circle id="remainingArc" class="timer-ring__value" cx="60" cy="60" r="54"></circle>
+        <path id="remainingSector" class="timer-ring__value"></path>
       </svg>
       <output id="remainingTime" class="remaining-time" aria-live="polite">${initialView.remainingLabel}</output>
     </section>
@@ -109,23 +110,15 @@ style.textContent = `
   .timer-ring {
     width: 184px;
     height: 184px;
-    transform: rotate(-90deg);
-  }
-
-  .timer-ring__track,
-  .timer-ring__value {
-    fill: none;
-    stroke-width: 12;
   }
 
   .timer-ring__track {
-    stroke: #dbe4ea;
+    fill: #dbe4ea;
   }
 
   .timer-ring__value {
-    stroke: #2f80ed;
-    stroke-linecap: round;
-    transition: stroke-dashoffset 160ms ease;
+    fill: #2f80ed;
+    transition: d 160ms ease;
   }
 
   .remaining-time {
@@ -162,16 +155,15 @@ document.head.append(style);
 
 const minutesInput = document.querySelector<HTMLInputElement>("#minutesInput");
 const secondsInput = document.querySelector<HTMLInputElement>("#secondsInput");
-const remainingArc = document.querySelector<SVGCircleElement>("#remainingArc");
+const remainingSector = document.querySelector<SVGPathElement>("#remainingSector");
 const remainingTime = document.querySelector<HTMLOutputElement>("#remainingTime");
 const resetButton = document.querySelector<HTMLButtonElement>("#resetButton");
 
-const radius = 54;
-const circumference = 2 * Math.PI * radius;
-
-if (remainingArc) {
-  remainingArc.style.strokeDasharray = `${circumference}`;
-}
+const timerGeometry = {
+  centerX: 60,
+  centerY: 60,
+  radius: 54,
+};
 
 function readTimerInputValues() {
   return {
@@ -186,9 +178,8 @@ function updateTimerDisplay(view: TimerViewModel): void {
     remainingTime.textContent = view.remainingLabel;
   }
 
-  if (remainingArc) {
-    const offset = circumference * (1 - view.remainingRatio);
-    remainingArc.style.strokeDashoffset = `${offset}`;
+  if (remainingSector) {
+    remainingSector.setAttribute("d", createRemainingSectorPath(timerGeometry, view.remainingRatio));
   }
 }
 
