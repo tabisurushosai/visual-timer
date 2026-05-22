@@ -37,9 +37,12 @@ const messages = {
   secondsLabel: getMessage("secondsLabel", "秒"),
   presetsTitle: getMessage("presetsTitle", "プリセット"),
   savePresetButton: getMessage("savePresetButton", "保存"),
+  savePresetLabel: getMessage("savePresetLabel", "今の時間をプリセットに保存"),
   savedTimesLabel: getMessage("savedTimesLabel", "保存した時間"),
+  presetButtonLabel: getMessage("presetButtonLabel", "$TIME$に設定"),
   remainingTimeLabel: getMessage("remainingTimeLabel", "残り時間"),
   remainingTimeChartTitle: getMessage("remainingTimeChartTitle", "残り時間の円表示"),
+  remainingTimeStatus: getMessage("remainingTimeStatus", "残り時間 $TIME$"),
   finishMessage: getMessage("finishMessage", "おわり"),
   controlsLabel: getMessage("controlsLabel", "操作"),
   startButton: getMessage("startButton", "開始"),
@@ -58,6 +61,8 @@ const messages = {
   themeSky: getMessage("themeSky", "そら"),
   themeLeaf: getMessage("themeLeaf", "はっぱ"),
   themeBerry: getMessage("themeBerry", "ベリー"),
+  themeButtonLabel: getMessage("themeButtonLabel", "$THEME$テーマ"),
+  selectedThemeLabel: getMessage("selectedThemeLabel", "選択中"),
 };
 
 const themeLabels: Record<TimerThemeId, string> = {
@@ -81,11 +86,11 @@ app.innerHTML = `
       <div class="time-inputs">
         <label>
           <span>${messages.minutesLabel}</span>
-          <input id="minutesInput" type="number" min="0" max="99" step="1" inputmode="numeric" value="${initialView.durationMinutes}" />
+          <input id="minutesInput" type="number" min="0" max="99" step="1" inputmode="numeric" aria-label="${messages.minutesLabel}" value="${initialView.durationMinutes}" />
         </label>
         <label>
           <span>${messages.secondsLabel}</span>
-          <input id="secondsInput" type="number" min="0" max="59" step="1" inputmode="numeric" value="${initialView.durationSeconds}" />
+          <input id="secondsInput" type="number" min="0" max="59" step="1" inputmode="numeric" aria-label="${messages.secondsLabel}" value="${initialView.durationSeconds}" />
         </label>
       </div>
     </section>
@@ -93,10 +98,10 @@ app.innerHTML = `
     <section class="preset-card" aria-labelledby="preset-title">
       <div class="preset-card__header">
         <h2 id="preset-title"><span aria-hidden="true">⭐</span>${messages.presetsTitle}</h2>
-        <button id="savePresetButton" class="secondary-button" type="button">${messages.savePresetButton}</button>
+        <button id="savePresetButton" class="secondary-button" type="button" aria-label="${messages.savePresetLabel}" aria-describedby="presetLimitMessage">${messages.savePresetButton}</button>
       </div>
       <p id="presetLimitMessage" class="notice" hidden>${messages.premiumPresetLimitMessage}</p>
-      <div id="presetList" class="preset-list" role="list" aria-label="${messages.savedTimesLabel}"></div>
+      <div id="presetList" class="preset-list" role="group" aria-label="${messages.savedTimesLabel}"></div>
     </section>
 
     <section class="premium-card" aria-labelledby="premium-title">
@@ -111,7 +116,7 @@ app.innerHTML = `
     <section class="theme-card" aria-labelledby="theme-title">
       <h2 id="theme-title"><span aria-hidden="true">🎨</span>${messages.themeTitle}</h2>
       <p id="themeLockedLabel" class="notice">${messages.themeLockedLabel}</p>
-      <div id="themeList" class="theme-list" role="list"></div>
+      <div id="themeList" class="theme-list" role="group" aria-label="${messages.themeTitle}"></div>
     </section>
 
     <section class="timer-face" aria-label="${messages.remainingTimeLabel}">
@@ -121,6 +126,7 @@ app.innerHTML = `
         <path id="remainingSector" class="timer-ring__value"></path>
       </svg>
       <output id="remainingTime" class="remaining-time" aria-live="polite">${initialView.remainingLabel}</output>
+      <p id="timerStatus" class="sr-only" aria-live="polite">${messages.remainingTimeStatus.replace("$TIME$", initialView.remainingLabel)}</p>
       <p id="finishMessage" class="finish-message" aria-live="polite">${messages.finishMessage}</p>
     </section>
 
@@ -144,6 +150,18 @@ style.textContent = `
     color: #243447;
     background: #f7fbff;
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 
   body {
@@ -243,6 +261,13 @@ style.textContent = `
     font: inherit;
     font-size: 18px;
     font-weight: 800;
+  }
+
+  input:focus-visible,
+  button:focus-visible,
+  .link-button:focus-visible {
+    outline: 3px solid #7c3aed;
+    outline-offset: 3px;
   }
 
   .preset-list {
@@ -356,7 +381,9 @@ style.textContent = `
 
   button:disabled {
     cursor: default;
-    opacity: 0.55;
+    color: #4b5563;
+    background: #eef2f7;
+    opacity: 1;
   }
 
   .secondary-button,
@@ -385,8 +412,12 @@ style.textContent = `
   }
 
   .theme-button[aria-pressed="true"] {
-    outline: 2px solid #2364aa;
-    outline-offset: 1px;
+    box-shadow: inset 0 0 0 3px #2364aa;
+  }
+
+  .theme-selected-mark {
+    min-width: 1em;
+    font-weight: 900;
   }
 
   .theme-swatch {
@@ -411,6 +442,7 @@ const themeLockedLabel = document.querySelector<HTMLParagraphElement>("#themeLoc
 const timerFace = document.querySelector<HTMLElement>(".timer-face");
 const remainingSector = document.querySelector<SVGPathElement>("#remainingSector");
 const remainingTime = document.querySelector<HTMLOutputElement>("#remainingTime");
+const timerStatus = document.querySelector<HTMLParagraphElement>("#timerStatus");
 const finishMessage = document.querySelector<HTMLParagraphElement>("#finishMessage");
 const startButton = document.querySelector<HTMLButtonElement>("#startButton");
 const pauseButton = document.querySelector<HTMLButtonElement>("#pauseButton");
@@ -442,6 +474,10 @@ function readTimerInputValues() {
   };
 }
 
+function formatMessage(template: string, replacements: Record<string, string>): string {
+  return Object.entries(replacements).reduce((message, [key, value]) => message.replace(`$${key}$`, value), template);
+}
+
 function updateTimerDisplay(view: TimerViewModel): void {
   const isFinished = view.status === "finished";
 
@@ -450,6 +486,11 @@ function updateTimerDisplay(view: TimerViewModel): void {
   if (remainingTime) {
     remainingTime.value = view.remainingLabel;
     remainingTime.textContent = view.remainingLabel;
+    remainingTime.setAttribute("aria-label", formatMessage(messages.remainingTimeStatus, { TIME: view.remainingLabel }));
+  }
+
+  if (timerStatus) {
+    timerStatus.textContent = isFinished ? messages.finishMessage : formatMessage(messages.remainingTimeStatus, { TIME: view.remainingLabel });
   }
 
   if (finishMessage) {
@@ -491,6 +532,7 @@ function renderPresets(): void {
       button.type = "button";
       button.textContent = preset.label;
       button.dataset.totalSeconds = String(preset.totalSeconds);
+      button.setAttribute("aria-label", formatMessage(messages.presetButtonLabel, { TIME: preset.label }));
 
       return button;
     }),
@@ -556,21 +598,41 @@ function renderThemes(): void {
       const button = document.createElement("button");
       const swatch = document.createElement("span");
       const label = document.createElement("span");
+      const selectedMark = document.createElement("span");
+      const isSelected = theme.id === selectedThemeId;
 
       swatch.className = "theme-swatch";
       swatch.style.background = theme.accentColor;
       label.textContent = themeLabels[theme.id];
+      selectedMark.className = "theme-selected-mark";
+      selectedMark.textContent = isSelected ? "✓" : "";
+      selectedMark.setAttribute("aria-hidden", "true");
 
       button.className = "theme-button";
       button.type = "button";
       button.dataset.themeId = theme.id;
       button.disabled = !premiumStatus.isPremium;
-      button.setAttribute("aria-pressed", String(theme.id === selectedThemeId));
-      button.append(swatch, label);
+      button.setAttribute("aria-pressed", String(isSelected));
+      button.setAttribute(
+        "aria-label",
+        `${formatMessage(messages.themeButtonLabel, { THEME: themeLabels[theme.id] })}${isSelected ? ` ${messages.selectedThemeLabel}` : ""}`,
+      );
+      button.append(swatch, label, selectedMark);
 
       return button;
     }),
   );
+}
+
+function focusSiblingButton(buttons: HTMLButtonElement[], currentButton: HTMLButtonElement, direction: 1 | -1): void {
+  const currentIndex = buttons.indexOf(currentButton);
+
+  if (currentIndex < 0) {
+    return;
+  }
+
+  const nextButton = buttons[(currentIndex + direction + buttons.length) % buttons.length];
+  nextButton?.focus();
 }
 
 function refreshPremiumUi(): void {
@@ -660,6 +722,21 @@ presetList?.addEventListener("click", (event) => {
   writeDurationInputs(view);
   updateTimerDisplay(view);
 });
+presetList?.addEventListener("keydown", (event) => {
+  if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") {
+    return;
+  }
+
+  const presetButton = (event.target as Element).closest<HTMLButtonElement>(".preset-button");
+  const presetButtons = Array.from(presetList.querySelectorAll<HTMLButtonElement>(".preset-button"));
+
+  if (!presetButton || presetButtons.length === 0) {
+    return;
+  }
+
+  event.preventDefault();
+  focusSiblingButton(presetButtons, presetButton, event.key === "ArrowRight" ? 1 : -1);
+});
 savePresetButton?.addEventListener("click", async () => {
   const view = timerController.setDurationFromInputValues(readTimerInputValues());
 
@@ -703,6 +780,21 @@ themeList?.addEventListener("click", async (event) => {
   applyTheme(selectedThemeId);
   await setTimerThemeId(selectedThemeId);
   renderThemes();
+});
+themeList?.addEventListener("keydown", (event) => {
+  if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") {
+    return;
+  }
+
+  const themeButton = (event.target as Element).closest<HTMLButtonElement>(".theme-button");
+  const themeButtons = Array.from(themeList.querySelectorAll<HTMLButtonElement>(".theme-button:not(:disabled)"));
+
+  if (!themeButton || themeButtons.length === 0) {
+    return;
+  }
+
+  event.preventDefault();
+  focusSiblingButton(themeButtons, themeButton, event.key === "ArrowRight" ? 1 : -1);
 });
 
 updateTimerDisplay(initialView);

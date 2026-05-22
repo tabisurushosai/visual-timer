@@ -6,9 +6,12 @@
   "secondsLabel": { "message": "Sec" },
   "presetsTitle": { "message": "Presets" },
   "savePresetButton": { "message": "Save" },
+  "savePresetLabel": { "message": "Save current time as a preset" },
   "savedTimesLabel": { "message": "Saved times" },
+  "presetButtonLabel": { "message": "Set to $TIME$" },
   "remainingTimeLabel": { "message": "Remaining time" },
   "remainingTimeChartTitle": { "message": "Circular remaining time display" },
+  "remainingTimeStatus": { "message": "Remaining time $TIME$" },
   "finishMessage": { "message": "Done" },
   "controlsLabel": { "message": "Controls" },
   "startButton": { "message": "Start" },
@@ -26,5 +29,7 @@
   "themeLockedLabel": { "message": "Premium unlocks color themes" },
   "themeSky": { "message": "Sky" },
   "themeLeaf": { "message": "Leaf" },
-  "themeBerry": { "message": "Berry" }
+  "themeBerry": { "message": "Berry" },
+  "themeButtonLabel": { "message": "$THEME$ theme" },
+  "selectedThemeLabel": { "message": "selected" }
 }

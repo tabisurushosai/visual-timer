@@ -6,9 +6,12 @@
   "secondsLabel": { "message": "秒" },
   "presetsTitle": { "message": "プリセット" },
   "savePresetButton": { "message": "保存" },
+  "savePresetLabel": { "message": "今の時間をプリセットに保存" },
   "savedTimesLabel": { "message": "保存した時間" },
+  "presetButtonLabel": { "message": "$TIME$に設定" },
   "remainingTimeLabel": { "message": "残り時間" },
   "remainingTimeChartTitle": { "message": "残り時間の円表示" },
+  "remainingTimeStatus": { "message": "残り時間 $TIME$" },
   "finishMessage": { "message": "おわり" },
   "controlsLabel": { "message": "操作" },
   "startButton": { "message": "開始" },
@@ -26,5 +29,7 @@
   "themeLockedLabel": { "message": "Premiumで色テーマを変更できます" },
   "themeSky": { "message": "そら" },
   "themeLeaf": { "message": "はっぱ" },
-  "themeBerry": { "message": "ベリー" }
+  "themeBerry": { "message": "ベリー" },
+  "themeButtonLabel": { "message": "$THEME$テーマ" },
+  "selectedThemeLabel": { "message": "選択中" }
 }
