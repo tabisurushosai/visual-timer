@@ -6,7 +6,13 @@ export interface Store {
   remove(key: string): Promise<void>;
 }
 export const store: Store = {
-  get<T>(key) { return new Promise((res) => chrome.storage.local.get(key, (o) => res((o[key] as T) ?? null))); },
-  set<T>(key, value) { return new Promise((res) => chrome.storage.local.set({ [key]: value }, () => res())); },
-  remove(key) { return new Promise((res) => chrome.storage.local.remove(key, () => res())); },
+  get<T>(key: string) {
+    return new Promise<T | null>((resolve) => chrome.storage.local.get(key, (items) => resolve((items[key] as T | undefined) ?? null)));
+  },
+  set<T>(key: string, value: T) {
+    return new Promise<void>((resolve) => chrome.storage.local.set({ [key]: value }, () => resolve()));
+  },
+  remove(key: string) {
+    return new Promise<void>((resolve) => chrome.storage.local.remove(key, () => resolve()));
+  },
 };
