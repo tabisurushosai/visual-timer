@@ -29,19 +29,23 @@ export function getDefaultTimerPresets(): TimerPreset[] {
 }
 
 export function normalizeTimerPresets(value: unknown): TimerPreset[] {
-  const secondsList = Array.isArray(value)
-    ? value.map((item) => {
-        if (typeof item === "number") {
-          return item;
-        }
+  if (!Array.isArray(value)) {
+    return getDefaultTimerPresets();
+  }
 
-        if (typeof item === "object" && item !== null && "totalSeconds" in item) {
-          return Number(item.totalSeconds);
-        }
+  const secondsList = value.flatMap((item) => {
+    if (typeof item === "number" && Number.isFinite(item)) {
+      return [item];
+    }
 
-        return DEFAULT_TIMER_SECONDS;
-      })
-    : DEFAULT_PRESET_SECONDS;
+    if (typeof item === "object" && item !== null && "totalSeconds" in item) {
+      const totalSeconds = Number(item.totalSeconds);
+
+      return Number.isFinite(totalSeconds) ? [totalSeconds] : [];
+    }
+
+    return [];
+  });
 
   const uniqueSeconds = Array.from(new Set(secondsList.map(normalizeDurationSeconds)));
   const limitedSeconds = uniqueSeconds.slice(0, MAX_PRESET_COUNT);

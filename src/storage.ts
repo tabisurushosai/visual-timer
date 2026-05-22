@@ -16,15 +16,54 @@ const LAST_TIMER_DURATION_KEY = "lastTimerDurationSeconds";
 const PREMIUM_ACCESS_KEY = "premiumAccess";
 const TIMER_THEME_KEY = "timerTheme";
 
+const memoryFallback = new Map<string, unknown>();
+
+function getStorageError(): Error | null {
+  const message = chrome.runtime.lastError?.message;
+
+  return message ? new Error(message) : null;
+}
+
 export const store: Store = {
   get<T>(key: string) {
-    return new Promise<T | null>((resolve) => chrome.storage.local.get(key, (items) => resolve((items[key] as T | undefined) ?? null)));
+    return new Promise<T | null>((resolve) => {
+      chrome.storage.local.get(key, (items) => {
+        if (getStorageError()) {
+          resolve((memoryFallback.get(key) as T | undefined) ?? null);
+          return;
+        }
+
+        const value = items[key] as T | undefined;
+
+        if (value === undefined) {
+          resolve((memoryFallback.get(key) as T | undefined) ?? null);
+          return;
+        }
+
+        memoryFallback.set(key, value);
+        resolve(value);
+      });
+    });
   },
   set<T>(key: string, value: T) {
-    return new Promise<void>((resolve) => chrome.storage.local.set({ [key]: value }, () => resolve()));
+    memoryFallback.set(key, value);
+
+    return new Promise<void>((resolve) => {
+      chrome.storage.local.set({ [key]: value }, () => {
+        getStorageError();
+        resolve();
+      });
+    });
   },
   remove(key: string) {
-    return new Promise<void>((resolve) => chrome.storage.local.remove(key, () => resolve()));
+    memoryFallback.delete(key);
+
+    return new Promise<void>((resolve) => {
+      chrome.storage.local.remove(key, () => {
+        getStorageError();
+        resolve();
+      });
+    });
   },
 };
 
