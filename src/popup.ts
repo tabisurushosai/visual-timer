@@ -33,6 +33,7 @@ app.innerHTML = `
         <path id="remainingSector" class="timer-ring__value"></path>
       </svg>
       <output id="remainingTime" class="remaining-time" aria-live="polite">${initialView.remainingLabel}</output>
+      <p id="finishMessage" class="finish-message" aria-live="polite">おわり</p>
     </section>
 
     <section class="controls" aria-label="操作">
@@ -105,6 +106,8 @@ style.textContent = `
     place-items: center;
     position: relative;
     min-height: 190px;
+    border-radius: 8px;
+    transition: background 160ms ease;
   }
 
   .timer-ring {
@@ -121,12 +124,40 @@ style.textContent = `
     transition: d 160ms ease;
   }
 
+  .timer-face.is-finished {
+    background: #fff2cc;
+  }
+
+  .timer-face.is-finished .timer-ring__track {
+    fill: #f8d66d;
+  }
+
+  .timer-face.is-finished .timer-ring__value {
+    fill: #f2994a;
+  }
+
   .remaining-time {
     position: absolute;
     font-size: 34px;
     font-weight: 800;
     line-height: 1;
     color: #111827;
+  }
+
+  .finish-message {
+    position: absolute;
+    margin: 0;
+    transform: translateY(46px);
+    color: #9a3412;
+    font-size: 32px;
+    font-weight: 900;
+    line-height: 1;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .timer-face.is-finished .finish-message {
+    opacity: 1;
   }
 
   .controls {
@@ -155,8 +186,10 @@ document.head.append(style);
 
 const minutesInput = document.querySelector<HTMLInputElement>("#minutesInput");
 const secondsInput = document.querySelector<HTMLInputElement>("#secondsInput");
+const timerFace = document.querySelector<HTMLElement>(".timer-face");
 const remainingSector = document.querySelector<SVGPathElement>("#remainingSector");
 const remainingTime = document.querySelector<HTMLOutputElement>("#remainingTime");
+const finishMessage = document.querySelector<HTMLParagraphElement>("#finishMessage");
 const startButton = document.querySelector<HTMLButtonElement>("#startButton");
 const pauseButton = document.querySelector<HTMLButtonElement>("#pauseButton");
 const resetButton = document.querySelector<HTMLButtonElement>("#resetButton");
@@ -176,9 +209,17 @@ function readTimerInputValues() {
 }
 
 function updateTimerDisplay(view: TimerViewModel): void {
+  const isFinished = view.status === "finished";
+
+  timerFace?.classList.toggle("is-finished", isFinished);
+
   if (remainingTime) {
     remainingTime.value = view.remainingLabel;
     remainingTime.textContent = view.remainingLabel;
+  }
+
+  if (finishMessage) {
+    finishMessage.hidden = !isFinished;
   }
 
   if (remainingSector) {
