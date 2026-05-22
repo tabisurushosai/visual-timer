@@ -1,5 +1,6 @@
 import { createTimerController, type TimerViewModel } from "./core/timerController";
 import { createRemainingSectorPath } from "./core/timerGeometry";
+import { shouldPlayFinishChime } from "./core/chime";
 import { addTimerPreset, removeTimerPreset, type TimerPreset } from "./core/presets";
 import {
   getPresetLimit,
@@ -12,9 +13,11 @@ import {
 import { getTimerTheme, TIMER_THEMES, type TimerThemeId } from "./core/themes";
 import {
   getLastTimerDurationSeconds,
+  getFinishChimeEnabled,
   getPremiumAccess,
   getTimerPresets,
   getTimerThemeId,
+  setFinishChimeEnabled,
   setLastTimerDurationSeconds,
   setPremiumAccess,
   setTimerPresets,
@@ -69,6 +72,8 @@ const messages = {
   themeBerry: getMessage("themeBerry", "ベリー"),
   themeButtonLabel: getMessage("themeButtonLabel", "$THEME$テーマ"),
   selectedThemeLabel: getMessage("selectedThemeLabel", "選択中"),
+  chimeTitle: getMessage("chimeTitle", "チャイム"),
+  chimeToggleLabel: getMessage("chimeToggleLabel", "終了時にやさしいチャイムを鳴らす"),
 };
 
 const themeLabels: Record<TimerThemeId, string> = {
@@ -125,6 +130,14 @@ app.innerHTML = `
       <h2 id="theme-title"><span aria-hidden="true">🎨</span>${messages.themeTitle}</h2>
       <p id="themeLockedLabel" class="notice">${messages.themeLockedLabel}</p>
       <div id="themeList" class="theme-list" role="group" aria-label="${messages.themeTitle}"></div>
+    </section>
+
+    <section class="chime-card" aria-labelledby="chime-title">
+      <h2 id="chime-title"><span aria-hidden="true">🔔</span>${messages.chimeTitle}</h2>
+      <label class="chime-toggle">
+        <input id="finishChimeToggle" type="checkbox" />
+        <span>${messages.chimeToggleLabel}</span>
+      </label>
     </section>
 
     <section class="timer-face" aria-label="${messages.remainingTimeLabel}">
@@ -220,7 +233,8 @@ style.textContent = `
   .time-card,
   .preset-card,
   .premium-card,
-  .theme-card {
+  .theme-card,
+  .chime-card {
     display: grid;
     gap: 10px;
     padding: 12px;
@@ -488,6 +502,25 @@ style.textContent = `
     border: 2px solid #ffffff;
     box-shadow: 0 0 0 1px #ccd5df;
   }
+
+  .chime-toggle {
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 10px;
+    color: #334e68;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.35;
+  }
+
+  .chime-toggle input {
+    width: 22px;
+    min-height: 22px;
+    margin: 0;
+    border: 0;
+    padding: 0;
+    accent-color: #1f73d1;
+  }
 `;
 document.head.append(style);
 
@@ -502,6 +535,7 @@ const premiumStatusLabel = document.querySelector<HTMLParagraphElement>("#premiu
 const startTrialButton = document.querySelector<HTMLButtonElement>("#startTrialButton");
 const themeList = document.querySelector<HTMLDivElement>("#themeList");
 const themeLockedLabel = document.querySelector<HTMLParagraphElement>("#themeLockedLabel");
+const finishChimeToggle = document.querySelector<HTMLInputElement>("#finishChimeToggle");
 const timerFace = document.querySelector<HTMLElement>(".timer-face");
 const remainingSector = document.querySelector<SVGPathElement>("#remainingSector");
 const remainingTime = document.querySelector<HTMLOutputElement>("#remainingTime");
@@ -532,6 +566,14 @@ let premiumStatus: PremiumStatus = getPremiumStatus(
   Date.now(),
 );
 let selectedThemeId: TimerThemeId = "sky";
+let isFinishChimeEnabled = false;
+let latestTimerView = initialView;
+let audioContext: AudioContext | null = null;
+
+type AudioContextWindow = Window &
+  typeof globalThis & {
+    webkitAudioContext?: typeof AudioContext;
+  };
 
 function readTimerInputValues() {
   return {
@@ -546,6 +588,7 @@ function formatMessage(template: string, replacements: Record<string, string>): 
 
 function updateTimerDisplay(view: TimerViewModel): void {
   const isFinished = view.status === "finished";
+  const shouldPlayChime = shouldPlayFinishChime(latestTimerView.status, view.status, isFinishChimeEnabled);
 
   timerFace?.classList.toggle("is-finished", isFinished);
 
@@ -574,6 +617,48 @@ function updateTimerDisplay(view: TimerViewModel): void {
   if (pauseButton) {
     pauseButton.disabled = !view.isRunning;
   }
+
+  latestTimerView = view;
+
+  if (shouldPlayChime) {
+    playFinishChime();
+  }
+}
+
+function playFinishChime(): void {
+  const audioWindow = window as AudioContextWindow;
+  const AudioContextConstructor = audioWindow.AudioContext || audioWindow.webkitAudioContext;
+
+  if (!AudioContextConstructor) {
+    return;
+  }
+
+  audioContext ??= new AudioContextConstructor();
+
+  const context = audioContext;
+  void context.resume();
+  const startAt = context.currentTime;
+  const gain = context.createGain();
+
+  gain.gain.setValueAtTime(0.0001, startAt);
+  gain.gain.exponentialRampToValueAtTime(0.08, startAt + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.55);
+  gain.connect(context.destination);
+
+  [523.25, 659.25, 783.99].forEach((frequency, index) => {
+    const oscillator = context.createOscillator();
+    const noteStart = startAt + index * 0.12;
+
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(frequency, noteStart);
+    oscillator.connect(gain);
+    oscillator.start(noteStart);
+    oscillator.stop(noteStart + 0.18);
+  });
+
+  window.setTimeout(() => {
+    gain.disconnect();
+  }, 700);
 }
 
 function writeDurationInputs(view: TimerViewModel): void {
@@ -984,9 +1069,20 @@ themeList?.addEventListener("keydown", (event) => {
   event.preventDefault();
   focusSiblingButton(themeButtons, themeButton, event.key === "ArrowRight" ? 1 : -1);
 });
+finishChimeToggle?.addEventListener("change", async () => {
+  isFinishChimeEnabled = finishChimeToggle.checked;
+  await setFinishChimeEnabled(isFinishChimeEnabled);
+});
 
 updateTimerDisplay(initialView);
 refreshPremiumUi();
+void getFinishChimeEnabled().then((storedFinishChimeEnabled) => {
+  isFinishChimeEnabled = storedFinishChimeEnabled;
+
+  if (finishChimeToggle) {
+    finishChimeToggle.checked = storedFinishChimeEnabled;
+  }
+});
 void getLastTimerDurationSeconds().then((lastTimerDurationSeconds) => {
   if (lastTimerDurationSeconds === null) {
     return;

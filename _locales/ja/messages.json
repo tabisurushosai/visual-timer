@@ -37,5 +37,7 @@
   "themeLeaf": { "message": "はっぱ" },
   "themeBerry": { "message": "ベリー" },
   "themeButtonLabel": { "message": "$THEME$テーマ" },
-  "selectedThemeLabel": { "message": "選択中" }
+  "selectedThemeLabel": { "message": "選択中" },
+  "chimeTitle": { "message": "チャイム" },
+  "chimeToggleLabel": { "message": "終了時にやさしいチャイムを鳴らす" }
 }

@@ -2,6 +2,7 @@ import { normalizeTimerPresets, type TimerPreset } from "./core/presets";
 import { normalizePremiumAccess, type PremiumAccess } from "./core/premium";
 import { normalizeThemeId, type TimerThemeId } from "./core/themes";
 import { normalizeDurationSeconds } from "./core/timer";
+import { normalizeChimeEnabled } from "./core/chime";
 
 // storage.ts : 保存アダプタ。拡張では chrome.storage.local。将来のPWAは localStorage 等に差し替えるだけ。
 // 画面/ロジックは必ずこの store 経由で保存し、chrome.storage を直接散在させない。
@@ -15,6 +16,7 @@ const PRESETS_KEY = "timerPresets";
 const LAST_TIMER_DURATION_KEY = "lastTimerDurationSeconds";
 const PREMIUM_ACCESS_KEY = "premiumAccess";
 const TIMER_THEME_KEY = "timerTheme";
+const FINISH_CHIME_ENABLED_KEY = "finishChimeEnabled";
 
 const memoryFallback = new Map<string, unknown>();
 
@@ -110,4 +112,14 @@ export async function getTimerThemeId(): Promise<TimerThemeId> {
 
 export async function setTimerThemeId(themeId: TimerThemeId): Promise<void> {
   await store.set(TIMER_THEME_KEY, normalizeThemeId(themeId));
+}
+
+export async function getFinishChimeEnabled(): Promise<boolean> {
+  const isEnabled = await store.get<unknown>(FINISH_CHIME_ENABLED_KEY);
+
+  return normalizeChimeEnabled(isEnabled);
+}
+
+export async function setFinishChimeEnabled(isEnabled: boolean): Promise<void> {
+  await store.set(FINISH_CHIME_ENABLED_KEY, normalizeChimeEnabled(isEnabled));
 }

@@ -37,5 +37,7 @@
   "themeLeaf": { "message": "Leaf" },
   "themeBerry": { "message": "Berry" },
   "themeButtonLabel": { "message": "$THEME$ theme" },
-  "selectedThemeLabel": { "message": "selected" }
+  "selectedThemeLabel": { "message": "selected" },
+  "chimeTitle": { "message": "Chime" },
+  "chimeToggleLabel": { "message": "Play a gentle chime when time is up" }
 }
