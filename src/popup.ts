@@ -43,6 +43,8 @@ const messages = {
   savePresetLabel: getMessage("savePresetLabel", "今の時間をプリセットに保存"),
   savedTimesLabel: getMessage("savedTimesLabel", "保存した時間"),
   presetButtonLabel: getMessage("presetButtonLabel", "$TIME$に設定"),
+  quickStartPresetsLabel: getMessage("quickStartPresetsLabel", "すぐ開始"),
+  quickStartPresetButtonLabel: getMessage("quickStartPresetButtonLabel", "$TIME$をすぐ開始"),
   emptyPresetsMessage: getMessage("emptyPresetsMessage", "保存した時間はまだありません。よく使う時間を保存できます。"),
   deletePresetButton: getMessage("deletePresetButton", "削除"),
   deletePresetLabel: getMessage("deletePresetLabel", "$TIME$を削除"),
@@ -112,6 +114,7 @@ app.innerHTML = `
         <button id="savePresetButton" class="secondary-button" type="button" aria-label="${messages.savePresetLabel}" aria-describedby="presetLimitMessage">${messages.savePresetButton}</button>
       </div>
       <p id="presetLimitMessage" class="notice" hidden>${messages.premiumPresetLimitMessage}</p>
+      <div id="quickStartPresetList" class="quick-start-list" role="group" aria-label="${messages.quickStartPresetsLabel}"></div>
       <div id="presetList" class="preset-list" role="group" aria-label="${messages.savedTimesLabel}"></div>
       <p id="emptyPresetsMessage" class="empty-message" hidden>${messages.emptyPresetsMessage}</p>
       <p id="presetActionMessage" class="notice preset-action" aria-live="polite" hidden></p>
@@ -301,6 +304,12 @@ style.textContent = `
     gap: 8px;
   }
 
+  .quick-start-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
   .preset-item {
     display: grid;
     grid-template-columns: 1fr auto;
@@ -430,6 +439,7 @@ style.textContent = `
   }
 
   .secondary-button,
+  .quick-start-button,
   .preset-button,
   .preset-delete-button,
   .undo-button,
@@ -440,6 +450,7 @@ style.textContent = `
   }
 
   .secondary-button:hover,
+  .quick-start-button:hover,
   .preset-button:hover,
   .preset-delete-button:hover,
   .undo-button:hover,
@@ -450,6 +461,18 @@ style.textContent = `
   .preset-button {
     min-width: 0;
     padding: 0 10px;
+  }
+
+  .quick-start-button {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 92px;
+    padding: 0 10px;
+    color: #ffffff;
+    background: var(--timer-accent);
+  }
+
+  .quick-start-button:hover {
+    background: #1557a6;
   }
 
   .preset-delete-button {
@@ -526,6 +549,7 @@ document.head.append(style);
 
 const minutesInput = document.querySelector<HTMLInputElement>("#minutesInput");
 const secondsInput = document.querySelector<HTMLInputElement>("#secondsInput");
+const quickStartPresetList = document.querySelector<HTMLDivElement>("#quickStartPresetList");
 const presetList = document.querySelector<HTMLDivElement>("#presetList");
 const savePresetButton = document.querySelector<HTMLButtonElement>("#savePresetButton");
 const presetLimitMessage = document.querySelector<HTMLParagraphElement>("#presetLimitMessage");
@@ -678,6 +702,24 @@ function renderPresets(): void {
 
   if (emptyPresetsMessage) {
     emptyPresetsMessage.hidden = presets.length > 0;
+  }
+
+  quickStartPresetList?.replaceChildren(
+    ...presets.map((preset) => {
+      const button = document.createElement("button");
+
+      button.className = "quick-start-button";
+      button.type = "button";
+      button.textContent = preset.label;
+      button.dataset.totalSeconds = String(preset.totalSeconds);
+      button.setAttribute("aria-label", formatMessage(messages.quickStartPresetButtonLabel, { TIME: preset.label }));
+
+      return button;
+    }),
+  );
+
+  if (quickStartPresetList) {
+    quickStartPresetList.hidden = presets.length === 0;
   }
 
   presetList.replaceChildren(
@@ -874,6 +916,16 @@ function startTicking(): void {
   }, 1000);
 }
 
+function startPresetImmediately(totalSeconds: number): void {
+  stopTicking();
+  const view = timerController.startFromTotalSeconds(totalSeconds);
+
+  void setLastTimerDurationSeconds(view.totalSeconds);
+  writeDurationInputs(view);
+  updateTimerDisplay(view);
+  startTicking();
+}
+
 async function deletePresetWithUndo(presetId: string): Promise<void> {
   const deletedPreset = presets.find((preset) => preset.id === presetId);
 
@@ -945,6 +997,15 @@ resetButton?.addEventListener("click", () => {
   void setLastTimerDurationSeconds(view.totalSeconds);
   updateTimerDisplay(view);
 });
+quickStartPresetList?.addEventListener("click", (event) => {
+  const quickStartButton = (event.target as Element).closest<HTMLButtonElement>(".quick-start-button");
+
+  if (!quickStartButton) {
+    return;
+  }
+
+  startPresetImmediately(Number(quickStartButton.dataset.totalSeconds));
+});
 presetList?.addEventListener("click", (event) => {
   const clickedButton = (event.target as Element).closest<HTMLButtonElement>("button");
 
@@ -994,6 +1055,21 @@ presetActionMessage?.addEventListener("click", (event) => {
   }
 
   void undoPresetDelete();
+});
+quickStartPresetList?.addEventListener("keydown", (event) => {
+  if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") {
+    return;
+  }
+
+  const quickStartButton = (event.target as Element).closest<HTMLButtonElement>(".quick-start-button");
+  const quickStartButtons = Array.from(quickStartPresetList.querySelectorAll<HTMLButtonElement>(".quick-start-button"));
+
+  if (!quickStartButton || quickStartButtons.length === 0) {
+    return;
+  }
+
+  event.preventDefault();
+  focusSiblingButton(quickStartButtons, quickStartButton, event.key === "ArrowRight" ? 1 : -1);
 });
 presetList?.addEventListener("keydown", (event) => {
   if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") {

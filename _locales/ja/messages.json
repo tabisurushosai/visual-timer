@@ -9,6 +9,8 @@
   "savePresetLabel": { "message": "今の時間をプリセットに保存" },
   "savedTimesLabel": { "message": "保存した時間" },
   "presetButtonLabel": { "message": "$TIME$に設定" },
+  "quickStartPresetsLabel": { "message": "すぐ開始" },
+  "quickStartPresetButtonLabel": { "message": "$TIME$をすぐ開始" },
   "emptyPresetsMessage": { "message": "保存した時間はまだありません。よく使う時間を保存できます。" },
   "deletePresetButton": { "message": "削除" },
   "deletePresetLabel": { "message": "$TIME$を削除" },

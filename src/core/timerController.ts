@@ -27,6 +27,7 @@ export interface TimerController {
   getView(): TimerViewModel;
   setDurationFromInputValues(input: TimerInputValues): TimerViewModel;
   startFromInputValues(input: TimerInputValues): TimerViewModel;
+  startFromTotalSeconds(totalSeconds: number): TimerViewModel;
   pause(): TimerViewModel;
   resetFromInputValues(input: TimerInputValues): TimerViewModel;
   tick(elapsedSeconds?: number): TimerViewModel;
@@ -74,6 +75,12 @@ export function createTimerController(initialTotalSeconds = DEFAULT_TIMER_SECOND
       if (state.remainingSeconds > 0) {
         status = "running";
       }
+
+      return toViewModel(state, status);
+    },
+    startFromTotalSeconds(totalSeconds: number) {
+      state = createTimerState(totalSeconds);
+      status = "running";
 
       return toViewModel(state, status);
     },

@@ -9,6 +9,8 @@
   "savePresetLabel": { "message": "Save current time as a preset" },
   "savedTimesLabel": { "message": "Saved times" },
   "presetButtonLabel": { "message": "Set to $TIME$" },
+  "quickStartPresetsLabel": { "message": "Quick start" },
+  "quickStartPresetButtonLabel": { "message": "Start $TIME$ now" },
   "emptyPresetsMessage": { "message": "No saved times yet. Save a time you use often." },
   "deletePresetButton": { "message": "Delete" },
   "deletePresetLabel": { "message": "Delete $TIME$" },
