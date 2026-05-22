@@ -1,5 +1,6 @@
 import { createTimerController, type TimerViewModel } from "./core/timerController";
 import { createRemainingSectorPath } from "./core/timerGeometry";
+import { getTimerUrgency } from "./core/timerUrgency";
 import { shouldPlayFinishChime } from "./core/chime";
 import { toggleTimerDisplayMode, type TimerDisplayMode } from "./core/displayMode";
 import { addTimerPreset, removeTimerPreset, type TimerPreset } from "./core/presets";
@@ -174,6 +175,9 @@ style.textContent = `
     --timer-accent: #2684ff;
     --timer-track: #d9f0ff;
     --timer-finish: #ff9f43;
+    --timer-safe: #2f855a;
+    --timer-warning: #d69e2e;
+    --timer-urgent: #e53e3e;
     --surface: #ffffff;
     --surface-soft: #fff7d6;
     --border-soft: #cfe7ff;
@@ -425,6 +429,18 @@ style.textContent = `
 
   .timer-face.is-finished {
     background: #fff0c2;
+  }
+
+  .timer-face[data-urgency="safe"] .timer-ring__value {
+    fill: var(--timer-safe);
+  }
+
+  .timer-face[data-urgency="warning"] .timer-ring__value {
+    fill: var(--timer-warning);
+  }
+
+  .timer-face[data-urgency="urgent"] .timer-ring__value {
+    fill: var(--timer-urgent);
   }
 
   .timer-face.is-finished .timer-ring__track {
@@ -701,9 +717,11 @@ function formatMessage(template: string, replacements: Record<string, string>): 
 
 function updateTimerDisplay(view: TimerViewModel): void {
   const isFinished = view.status === "finished";
+  const urgency = getTimerUrgency(view.remainingRatio, view.status);
   const shouldPlayChime = shouldPlayFinishChime(latestTimerView.status, view.status, isFinishChimeEnabled);
 
   timerFace?.classList.toggle("is-finished", isFinished);
+  timerFace?.setAttribute("data-urgency", urgency);
 
   if (remainingTime) {
     remainingTime.value = view.remainingLabel;
