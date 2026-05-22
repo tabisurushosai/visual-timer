@@ -1,6 +1,7 @@
 import { createTimerController, type TimerViewModel } from "./core/timerController";
 import { createRemainingSectorPath } from "./core/timerGeometry";
 import { shouldPlayFinishChime } from "./core/chime";
+import { toggleTimerDisplayMode, type TimerDisplayMode } from "./core/displayMode";
 import { addTimerPreset, removeTimerPreset, type TimerPreset } from "./core/presets";
 import {
   getPresetLimit,
@@ -54,6 +55,10 @@ const messages = {
   remainingTimeLabel: getMessage("remainingTimeLabel", "残り時間"),
   remainingTimeChartTitle: getMessage("remainingTimeChartTitle", "残り時間の円表示"),
   remainingTimeStatus: getMessage("remainingTimeStatus", "残り時間 $TIME$"),
+  enterLargeDisplayButton: getMessage("enterLargeDisplayButton", "大きく"),
+  enterLargeDisplayLabel: getMessage("enterLargeDisplayLabel", "大表示モードにする"),
+  exitLargeDisplayButton: getMessage("exitLargeDisplayButton", "戻る"),
+  exitLargeDisplayLabel: getMessage("exitLargeDisplayLabel", "通常表示に戻る"),
   finishMessage: getMessage("finishMessage", "おわり"),
   controlsLabel: getMessage("controlsLabel", "操作"),
   startButton: getMessage("startButton", "開始"),
@@ -144,6 +149,7 @@ app.innerHTML = `
     </section>
 
     <section class="timer-face" aria-label="${messages.remainingTimeLabel}">
+      <button id="largeDisplayButton" class="large-display-button" type="button" aria-pressed="false" aria-label="${messages.enterLargeDisplayLabel}">${messages.enterLargeDisplayButton}</button>
       <svg class="timer-ring" viewBox="0 0 120 120" role="img" aria-labelledby="timerTitle">
         <title id="timerTitle">${messages.remainingTimeChartTitle}</title>
         <circle class="timer-ring__track" cx="60" cy="60" r="54"></circle>
@@ -198,10 +204,38 @@ style.textContent = `
     background: #f7fbff;
   }
 
+  body.is-large-display {
+    width: min(100vw, 780px);
+    min-width: 320px;
+  }
+
   .timer-shell {
     display: grid;
     gap: 12px;
     padding: 14px;
+  }
+
+  .timer-shell.is-large-display {
+    min-height: min(100vh, 740px);
+    grid-template-rows: 1fr auto;
+  }
+
+  .timer-shell.is-large-display:fullscreen {
+    box-sizing: border-box;
+    min-height: 100vh;
+    background: #f7fbff;
+  }
+
+  .timer-shell.is-large-display .app-header {
+    display: none;
+  }
+
+  .timer-shell.is-large-display .time-card,
+  .timer-shell.is-large-display .preset-card,
+  .timer-shell.is-large-display .premium-card,
+  .timer-shell.is-large-display .theme-card,
+  .timer-shell.is-large-display .chime-card {
+    display: none;
   }
 
   .app-header {
@@ -352,9 +386,32 @@ style.textContent = `
     transition: background 160ms ease;
   }
 
+  .timer-shell.is-large-display .timer-face {
+    min-height: min(70vh, 560px);
+    padding: 12px;
+  }
+
+  .timer-shell.is-large-display:fullscreen .timer-face {
+    min-height: calc(100vh - 110px);
+  }
+
   .timer-ring {
     width: 196px;
     height: 196px;
+  }
+
+  .timer-shell.is-large-display .timer-ring {
+    width: min(72vw, 500px);
+    height: min(72vw, 500px);
+    max-width: calc(100vh - 210px);
+    max-height: calc(100vh - 210px);
+  }
+
+  .timer-shell.is-large-display:fullscreen .timer-ring {
+    width: min(82vw, calc(100vh - 150px));
+    height: min(82vw, calc(100vh - 150px));
+    max-width: none;
+    max-height: none;
   }
 
   .timer-ring__track {
@@ -386,6 +443,10 @@ style.textContent = `
     color: #102a43;
   }
 
+  .timer-shell.is-large-display .remaining-time {
+    font-size: clamp(56px, 15vw, 118px);
+  }
+
   .finish-message {
     position: absolute;
     margin: 0;
@@ -398,6 +459,11 @@ style.textContent = `
     pointer-events: none;
   }
 
+  .timer-shell.is-large-display .finish-message {
+    transform: translateY(clamp(66px, 18vw, 130px));
+    font-size: clamp(44px, 11vw, 86px);
+  }
+
   .timer-face.is-finished .finish-message {
     opacity: 1;
   }
@@ -406,6 +472,26 @@ style.textContent = `
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 8px;
+  }
+
+  .timer-shell.is-large-display .controls {
+    align-self: end;
+  }
+
+  .large-display-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    min-height: 40px;
+    padding: 0 10px;
+    color: #12355b;
+    background: #ffffff;
+    box-shadow: 0 0 0 1px #b9dcff;
+    z-index: 1;
+  }
+
+  .large-display-button:hover {
+    background: #e3f2ff;
   }
 
   button,
@@ -560,7 +646,9 @@ const startTrialButton = document.querySelector<HTMLButtonElement>("#startTrialB
 const themeList = document.querySelector<HTMLDivElement>("#themeList");
 const themeLockedLabel = document.querySelector<HTMLParagraphElement>("#themeLockedLabel");
 const finishChimeToggle = document.querySelector<HTMLInputElement>("#finishChimeToggle");
+const timerShell = document.querySelector<HTMLElement>(".timer-shell");
 const timerFace = document.querySelector<HTMLElement>(".timer-face");
+const largeDisplayButton = document.querySelector<HTMLButtonElement>("#largeDisplayButton");
 const remainingSector = document.querySelector<SVGPathElement>("#remainingSector");
 const remainingTime = document.querySelector<HTMLOutputElement>("#remainingTime");
 const timerStatus = document.querySelector<HTMLParagraphElement>("#timerStatus");
@@ -591,6 +679,7 @@ let premiumStatus: PremiumStatus = getPremiumStatus(
 );
 let selectedThemeId: TimerThemeId = "sky";
 let isFinishChimeEnabled = false;
+let displayMode: TimerDisplayMode = "standard";
 let latestTimerView = initialView;
 let audioContext: AudioContext | null = null;
 
@@ -647,6 +736,47 @@ function updateTimerDisplay(view: TimerViewModel): void {
   if (shouldPlayChime) {
     playFinishChime();
   }
+}
+
+function updateDisplayMode(nextMode: TimerDisplayMode): void {
+  displayMode = nextMode;
+  const isLargeDisplay = displayMode === "large";
+
+  document.body.classList.toggle("is-large-display", isLargeDisplay);
+  timerShell?.classList.toggle("is-large-display", isLargeDisplay);
+
+  if (largeDisplayButton) {
+    largeDisplayButton.textContent = isLargeDisplay ? messages.exitLargeDisplayButton : messages.enterLargeDisplayButton;
+    largeDisplayButton.setAttribute("aria-label", isLargeDisplay ? messages.exitLargeDisplayLabel : messages.enterLargeDisplayLabel);
+    largeDisplayButton.setAttribute("aria-pressed", String(isLargeDisplay));
+  }
+}
+
+async function requestLargeDisplayMode(): Promise<void> {
+  updateDisplayMode("large");
+
+  if (!timerShell?.requestFullscreen || document.fullscreenElement) {
+    return;
+  }
+
+  try {
+    await timerShell.requestFullscreen();
+  } catch {
+    updateDisplayMode("large");
+  }
+}
+
+async function exitLargeDisplayMode(): Promise<void> {
+  if (document.fullscreenElement && document.exitFullscreen) {
+    try {
+      await document.exitFullscreen();
+    } catch {
+      updateDisplayMode("standard");
+    }
+    return;
+  }
+
+  updateDisplayMode("standard");
 }
 
 function playFinishChime(): void {
@@ -1149,8 +1279,29 @@ finishChimeToggle?.addEventListener("change", async () => {
   isFinishChimeEnabled = finishChimeToggle.checked;
   await setFinishChimeEnabled(isFinishChimeEnabled);
 });
+largeDisplayButton?.addEventListener("click", () => {
+  const nextMode = toggleTimerDisplayMode(displayMode);
+
+  if (nextMode === "large") {
+    void requestLargeDisplayMode();
+    return;
+  }
+
+  void exitLargeDisplayMode();
+});
+document.addEventListener("fullscreenchange", () => {
+  if (!document.fullscreenElement && displayMode === "large") {
+    updateDisplayMode("standard");
+  }
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && displayMode === "large") {
+    void exitLargeDisplayMode();
+  }
+});
 
 updateTimerDisplay(initialView);
+updateDisplayMode(displayMode);
 refreshPremiumUi();
 void getFinishChimeEnabled().then((storedFinishChimeEnabled) => {
   isFinishChimeEnabled = storedFinishChimeEnabled;
