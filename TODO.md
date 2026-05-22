@@ -1,0 +1,13 @@
+# visual-timer TODO
+- [ ] T001: src/popup.ts に popup骨格(時間設定 + 円表示 + 操作ボタン)を構築
+- [ ] T1B: 保存は src/storage.ts の store(get/set/remove)経由に統一し、状態・ロジックは src/core/ に chrome.*/DOM 非依存で分離する(将来PWA移植のため)
+- [ ] T002: 縮む扇形(SVGまたはcanvas)で残り時間を描画
+- [ ] T003: 開始/一時停止/リセット、残り数字表示
+- [ ] T004: 終了時の合図(色変化+「おわり」大表示、音は任意・既定オフ)
+- [ ] T005: プリセット時間の保存・選択を chrome.storage.local に
+- [ ] T006: 最後の設定を起動時に復元
+- [ ] T007: _locales ja/en を chrome.i18n で全UIに適用
+- [ ] T008: Premiumゲート(7日トライアル + Stripe Checkout URL)。無料は基本、Premiumで複数プリセット+色テーマ
+- [ ] T009: npm run build を通し ts/lint を解消
+- [ ] T010: release/visual-timer.zip 生成(node_modules除外)
+- [ ] T011: legal/PRIVACY.md と TERMS.md 作成(外部通信なし・データ収集なし・医療効果を主張しない)
