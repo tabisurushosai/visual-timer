@@ -1,1 +1,17 @@
-{ "extName": { "message": "Visual Timer" }, "extDesc": { "message": "A visual timer where the remaining time shrinks as a pie. Helps kids who struggle to sense time." } }
+{
+  "extName": { "message": "Visual Timer" },
+  "extDesc": { "message": "A visual timer where the remaining time shrinks as a pie. Helps kids who struggle to sense time." },
+  "timeSettingsTitle": { "message": "Time" },
+  "minutesLabel": { "message": "Min" },
+  "secondsLabel": { "message": "Sec" },
+  "presetsTitle": { "message": "Presets" },
+  "savePresetButton": { "message": "Save" },
+  "savedTimesLabel": { "message": "Saved times" },
+  "remainingTimeLabel": { "message": "Remaining time" },
+  "remainingTimeChartTitle": { "message": "Circular remaining time display" },
+  "finishMessage": { "message": "Done" },
+  "controlsLabel": { "message": "Controls" },
+  "startButton": { "message": "Start" },
+  "pauseButton": { "message": "Pause" },
+  "resetButton": { "message": "Reset" }
+}

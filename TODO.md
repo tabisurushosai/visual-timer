@@ -6,7 +6,7 @@
 - [x] T004: 終了時の合図(色変化+「おわり」大表示、音は任意・既定オフ)
 - [x] T005: プリセット時間の保存・選択を chrome.storage.local に
 - [x] T006: 最後の設定を起動時に復元
-- [ ] T007: _locales ja/en を chrome.i18n で全UIに適用
+- [x] T007: _locales ja/en を chrome.i18n で全UIに適用
 - [ ] T008: Premiumゲート(7日トライアル + Stripe Checkout URL)。無料は基本、Premiumで複数プリセット+色テーマ
 - [ ] T009: npm run build を通し ts/lint を解消
 - [ ] T010: release/visual-timer.zip 生成(node_modules除外)

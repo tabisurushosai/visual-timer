@@ -1,1 +1,17 @@
-{ "extName": { "message": "みえるタイマー" }, "extDesc": { "message": "残り時間が円グラフで縮んで見える視覚タイマー。時間の感覚がつかみにくい子の切替予告に。" } }
+{
+  "extName": { "message": "みえるタイマー" },
+  "extDesc": { "message": "残り時間が円グラフで縮んで見える視覚タイマー。時間の感覚がつかみにくい子の切替予告に。" },
+  "timeSettingsTitle": { "message": "時間" },
+  "minutesLabel": { "message": "分" },
+  "secondsLabel": { "message": "秒" },
+  "presetsTitle": { "message": "プリセット" },
+  "savePresetButton": { "message": "保存" },
+  "savedTimesLabel": { "message": "保存した時間" },
+  "remainingTimeLabel": { "message": "残り時間" },
+  "remainingTimeChartTitle": { "message": "残り時間の円表示" },
+  "finishMessage": { "message": "おわり" },
+  "controlsLabel": { "message": "操作" },
+  "startButton": { "message": "開始" },
+  "pauseButton": { "message": "一時停止" },
+  "resetButton": { "message": "リセット" }
+}

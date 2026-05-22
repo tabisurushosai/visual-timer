@@ -11,18 +11,38 @@ if (!app) {
 
 const timerController = createTimerController();
 const initialView = timerController.getView();
+const getMessage = (key: string, fallback: string): string => chrome.i18n.getMessage(key) || fallback;
+const messages = {
+  appName: getMessage("extName", "みえるタイマー"),
+  timeSettingsTitle: getMessage("timeSettingsTitle", "時間"),
+  minutesLabel: getMessage("minutesLabel", "分"),
+  secondsLabel: getMessage("secondsLabel", "秒"),
+  presetsTitle: getMessage("presetsTitle", "プリセット"),
+  savePresetButton: getMessage("savePresetButton", "保存"),
+  savedTimesLabel: getMessage("savedTimesLabel", "保存した時間"),
+  remainingTimeLabel: getMessage("remainingTimeLabel", "残り時間"),
+  remainingTimeChartTitle: getMessage("remainingTimeChartTitle", "残り時間の円表示"),
+  finishMessage: getMessage("finishMessage", "おわり"),
+  controlsLabel: getMessage("controlsLabel", "操作"),
+  startButton: getMessage("startButton", "開始"),
+  pauseButton: getMessage("pauseButton", "一時停止"),
+  resetButton: getMessage("resetButton", "リセット"),
+};
+
+document.documentElement.lang = chrome.i18n.getUILanguage();
+document.title = messages.appName;
 
 app.innerHTML = `
-  <main class="timer-shell" aria-label="みえるタイマー">
+  <main class="timer-shell" aria-label="${messages.appName}">
     <section class="time-card" aria-labelledby="time-settings-title">
-      <h2 id="time-settings-title">時間</h2>
+      <h2 id="time-settings-title">${messages.timeSettingsTitle}</h2>
       <div class="time-inputs">
         <label>
-          <span>分</span>
+          <span>${messages.minutesLabel}</span>
           <input id="minutesInput" type="number" min="0" max="99" step="1" inputmode="numeric" value="${initialView.durationMinutes}" />
         </label>
         <label>
-          <span>秒</span>
+          <span>${messages.secondsLabel}</span>
           <input id="secondsInput" type="number" min="0" max="59" step="1" inputmode="numeric" value="${initialView.durationSeconds}" />
         </label>
       </div>
@@ -30,26 +50,26 @@ app.innerHTML = `
 
     <section class="preset-card" aria-labelledby="preset-title">
       <div class="preset-card__header">
-        <h2 id="preset-title">プリセット</h2>
-        <button id="savePresetButton" class="secondary-button" type="button">保存</button>
+        <h2 id="preset-title">${messages.presetsTitle}</h2>
+        <button id="savePresetButton" class="secondary-button" type="button">${messages.savePresetButton}</button>
       </div>
-      <div id="presetList" class="preset-list" role="list" aria-label="保存した時間"></div>
+      <div id="presetList" class="preset-list" role="list" aria-label="${messages.savedTimesLabel}"></div>
     </section>
 
-    <section class="timer-face" aria-label="残り時間">
+    <section class="timer-face" aria-label="${messages.remainingTimeLabel}">
       <svg class="timer-ring" viewBox="0 0 120 120" role="img" aria-labelledby="timerTitle">
-        <title id="timerTitle">残り時間の円表示</title>
+        <title id="timerTitle">${messages.remainingTimeChartTitle}</title>
         <circle class="timer-ring__track" cx="60" cy="60" r="54"></circle>
         <path id="remainingSector" class="timer-ring__value"></path>
       </svg>
       <output id="remainingTime" class="remaining-time" aria-live="polite">${initialView.remainingLabel}</output>
-      <p id="finishMessage" class="finish-message" aria-live="polite">おわり</p>
+      <p id="finishMessage" class="finish-message" aria-live="polite">${messages.finishMessage}</p>
     </section>
 
-    <section class="controls" aria-label="操作">
-      <button id="startButton" type="button">開始</button>
-      <button id="pauseButton" type="button">一時停止</button>
-      <button id="resetButton" type="button">リセット</button>
+    <section class="controls" aria-label="${messages.controlsLabel}">
+      <button id="startButton" type="button">${messages.startButton}</button>
+      <button id="pauseButton" type="button">${messages.pauseButton}</button>
+      <button id="resetButton" type="button">${messages.resetButton}</button>
     </section>
   </main>
 `;
