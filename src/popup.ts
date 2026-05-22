@@ -157,7 +157,10 @@ const minutesInput = document.querySelector<HTMLInputElement>("#minutesInput");
 const secondsInput = document.querySelector<HTMLInputElement>("#secondsInput");
 const remainingSector = document.querySelector<SVGPathElement>("#remainingSector");
 const remainingTime = document.querySelector<HTMLOutputElement>("#remainingTime");
+const startButton = document.querySelector<HTMLButtonElement>("#startButton");
+const pauseButton = document.querySelector<HTMLButtonElement>("#pauseButton");
 const resetButton = document.querySelector<HTMLButtonElement>("#resetButton");
+let tickIntervalId: number | null = null;
 
 const timerGeometry = {
   centerX: 60,
@@ -181,15 +184,61 @@ function updateTimerDisplay(view: TimerViewModel): void {
   if (remainingSector) {
     remainingSector.setAttribute("d", createRemainingSectorPath(timerGeometry, view.remainingRatio));
   }
+
+  if (startButton) {
+    startButton.disabled = view.isRunning;
+  }
+
+  if (pauseButton) {
+    pauseButton.disabled = !view.isRunning;
+  }
 }
 
 function syncTimerFromInputs(): void {
+  stopTicking();
   updateTimerDisplay(timerController.setDurationFromInputValues(readTimerInputValues()));
+}
+
+function stopTicking(): void {
+  if (tickIntervalId === null) {
+    return;
+  }
+
+  window.clearInterval(tickIntervalId);
+  tickIntervalId = null;
+}
+
+function startTicking(): void {
+  if (tickIntervalId !== null) {
+    return;
+  }
+
+  tickIntervalId = window.setInterval(() => {
+    const view = timerController.tick();
+    updateTimerDisplay(view);
+
+    if (!view.isRunning) {
+      stopTicking();
+    }
+  }, 1000);
 }
 
 minutesInput?.addEventListener("input", syncTimerFromInputs);
 secondsInput?.addEventListener("input", syncTimerFromInputs);
+startButton?.addEventListener("click", () => {
+  const view = timerController.startFromInputValues(readTimerInputValues());
+  updateTimerDisplay(view);
+
+  if (view.isRunning) {
+    startTicking();
+  }
+});
+pauseButton?.addEventListener("click", () => {
+  stopTicking();
+  updateTimerDisplay(timerController.pause());
+});
 resetButton?.addEventListener("click", () => {
+  stopTicking();
   updateTimerDisplay(timerController.resetFromInputValues(readTimerInputValues()));
 });
 
