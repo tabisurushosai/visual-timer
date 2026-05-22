@@ -1,9 +1,4 @@
-import {
-  createTimerStateFromParts,
-  formatDuration,
-  getRemainingRatio,
-  type TimerState,
-} from "./core/timer";
+import { createTimerController, type TimerViewModel } from "./core/timerController";
 
 const app = document.querySelector<HTMLDivElement>("#app");
 
@@ -11,7 +6,8 @@ if (!app) {
   throw new Error("Popup root element #app was not found.");
 }
 
-let timerState = createTimerStateFromParts(3, 0);
+const timerController = createTimerController();
+const initialView = timerController.getView();
 
 app.innerHTML = `
   <main class="timer-shell" aria-label="みえるタイマー">
@@ -20,11 +16,11 @@ app.innerHTML = `
       <div class="time-inputs">
         <label>
           <span>分</span>
-          <input id="minutesInput" type="number" min="0" max="99" step="1" inputmode="numeric" value="3" />
+          <input id="minutesInput" type="number" min="0" max="99" step="1" inputmode="numeric" value="${initialView.durationMinutes}" />
         </label>
         <label>
           <span>秒</span>
-          <input id="secondsInput" type="number" min="0" max="59" step="1" inputmode="numeric" value="0" />
+          <input id="secondsInput" type="number" min="0" max="59" step="1" inputmode="numeric" value="${initialView.durationSeconds}" />
         </label>
       </div>
     </section>
@@ -35,7 +31,7 @@ app.innerHTML = `
         <circle class="timer-ring__track" cx="60" cy="60" r="54"></circle>
         <circle id="remainingArc" class="timer-ring__value" cx="60" cy="60" r="54"></circle>
       </svg>
-      <output id="remainingTime" class="remaining-time" aria-live="polite">3:00</output>
+      <output id="remainingTime" class="remaining-time" aria-live="polite">${initialView.remainingLabel}</output>
     </section>
 
     <section class="controls" aria-label="操作">
@@ -177,29 +173,33 @@ if (remainingArc) {
   remainingArc.style.strokeDasharray = `${circumference}`;
 }
 
-function readInputValue(input: HTMLInputElement | null): number {
-  return Number.parseInt(input?.value ?? "0", 10) || 0;
+function readTimerInputValues() {
+  return {
+    minutes: minutesInput?.value ?? "",
+    seconds: secondsInput?.value ?? "",
+  };
 }
 
-function updateTimerDisplay(state: TimerState): void {
+function updateTimerDisplay(view: TimerViewModel): void {
   if (remainingTime) {
-    remainingTime.value = formatDuration(state.remainingSeconds);
-    remainingTime.textContent = formatDuration(state.remainingSeconds);
+    remainingTime.value = view.remainingLabel;
+    remainingTime.textContent = view.remainingLabel;
   }
 
   if (remainingArc) {
-    const offset = circumference * (1 - getRemainingRatio(state));
+    const offset = circumference * (1 - view.remainingRatio);
     remainingArc.style.strokeDashoffset = `${offset}`;
   }
 }
 
 function syncTimerFromInputs(): void {
-  timerState = createTimerStateFromParts(readInputValue(minutesInput), readInputValue(secondsInput));
-  updateTimerDisplay(timerState);
+  updateTimerDisplay(timerController.setDurationFromInputValues(readTimerInputValues()));
 }
 
 minutesInput?.addEventListener("input", syncTimerFromInputs);
 secondsInput?.addEventListener("input", syncTimerFromInputs);
-resetButton?.addEventListener("click", syncTimerFromInputs);
+resetButton?.addEventListener("click", () => {
+  updateTimerDisplay(timerController.resetFromInputValues(readTimerInputValues()));
+});
 
-updateTimerDisplay(timerState);
+updateTimerDisplay(initialView);
