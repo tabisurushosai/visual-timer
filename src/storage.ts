@@ -31,7 +31,7 @@ export const store: Store = {
 export async function getTimerPresets(): Promise<TimerPreset[]> {
   const presets = await store.get<unknown>(PRESETS_KEY);
 
-  return normalizeTimerPresets(presets);
+  return presets === null ? normalizeTimerPresets(null) : normalizeTimerPresets(presets);
 }
 
 export async function setTimerPresets(presets: readonly TimerPreset[]): Promise<void> {

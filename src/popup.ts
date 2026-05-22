@@ -1,6 +1,6 @@
 import { createTimerController, type TimerViewModel } from "./core/timerController";
 import { createRemainingSectorPath } from "./core/timerGeometry";
-import { addTimerPreset, type TimerPreset } from "./core/presets";
+import { addTimerPreset, removeTimerPreset, type TimerPreset } from "./core/presets";
 import {
   getPresetLimit,
   getPremiumStatus,
@@ -40,6 +40,12 @@ const messages = {
   savePresetLabel: getMessage("savePresetLabel", "今の時間をプリセットに保存"),
   savedTimesLabel: getMessage("savedTimesLabel", "保存した時間"),
   presetButtonLabel: getMessage("presetButtonLabel", "$TIME$に設定"),
+  emptyPresetsMessage: getMessage("emptyPresetsMessage", "保存した時間はまだありません。よく使う時間を保存できます。"),
+  deletePresetButton: getMessage("deletePresetButton", "削除"),
+  deletePresetLabel: getMessage("deletePresetLabel", "$TIME$を削除"),
+  confirmDeletePresetButton: getMessage("confirmDeletePresetButton", "もう一度で削除"),
+  undoDeletePresetButton: getMessage("undoDeletePresetButton", "取り消し"),
+  presetDeletedMessage: getMessage("presetDeletedMessage", "$TIME$を削除しました"),
   remainingTimeLabel: getMessage("remainingTimeLabel", "残り時間"),
   remainingTimeChartTitle: getMessage("remainingTimeChartTitle", "残り時間の円表示"),
   remainingTimeStatus: getMessage("remainingTimeStatus", "残り時間 $TIME$"),
@@ -102,6 +108,8 @@ app.innerHTML = `
       </div>
       <p id="presetLimitMessage" class="notice" hidden>${messages.premiumPresetLimitMessage}</p>
       <div id="presetList" class="preset-list" role="group" aria-label="${messages.savedTimesLabel}"></div>
+      <p id="emptyPresetsMessage" class="empty-message" hidden>${messages.emptyPresetsMessage}</p>
+      <p id="presetActionMessage" class="notice preset-action" aria-live="polite" hidden></p>
     </section>
 
     <section class="premium-card" aria-labelledby="premium-title">
@@ -162,6 +170,10 @@ style.textContent = `
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
     border: 0;
+  }
+
+  [hidden] {
+    display: none !important;
   }
 
   body {
@@ -271,9 +283,26 @@ style.textContent = `
   }
 
   .preset-list {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
     gap: 8px;
+  }
+
+  .preset-item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+  }
+
+  .empty-message {
+    margin: 0;
+    border: 2px dashed #b9dcff;
+    border-radius: 8px;
+    padding: 10px;
+    color: #486581;
+    background: #fafdff;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.4;
   }
 
   .notice {
@@ -388,6 +417,8 @@ style.textContent = `
 
   .secondary-button,
   .preset-button,
+  .preset-delete-button,
+  .undo-button,
   .theme-button {
     min-height: 44px;
     color: #12355b;
@@ -396,12 +427,42 @@ style.textContent = `
 
   .secondary-button:hover,
   .preset-button:hover,
+  .preset-delete-button:hover,
+  .undo-button:hover,
   .theme-button:hover {
     background: #bfdbfe;
   }
 
   .preset-button {
-    min-width: 66px;
+    min-width: 0;
+    padding: 0 10px;
+  }
+
+  .preset-delete-button {
+    min-width: 82px;
+    padding: 0 10px;
+    color: #7c2d12;
+    background: #fff0c2;
+  }
+
+  .preset-delete-button.is-confirming {
+    color: #ffffff;
+    background: #c2410c;
+  }
+
+  .preset-delete-button.is-confirming:hover {
+    background: #9a3412;
+  }
+
+  .preset-action {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .undo-button {
+    min-height: 36px;
     padding: 0 10px;
   }
 
@@ -435,6 +496,8 @@ const secondsInput = document.querySelector<HTMLInputElement>("#secondsInput");
 const presetList = document.querySelector<HTMLDivElement>("#presetList");
 const savePresetButton = document.querySelector<HTMLButtonElement>("#savePresetButton");
 const presetLimitMessage = document.querySelector<HTMLParagraphElement>("#presetLimitMessage");
+const emptyPresetsMessage = document.querySelector<HTMLParagraphElement>("#emptyPresetsMessage");
+const presetActionMessage = document.querySelector<HTMLParagraphElement>("#presetActionMessage");
 const premiumStatusLabel = document.querySelector<HTMLParagraphElement>("#premiumStatus");
 const startTrialButton = document.querySelector<HTMLButtonElement>("#startTrialButton");
 const themeList = document.querySelector<HTMLDivElement>("#themeList");
@@ -456,6 +519,9 @@ const timerGeometry = {
 };
 
 let presets: TimerPreset[] = [];
+let pendingDeletePresetId: string | null = null;
+let undoPresetsSnapshot: TimerPreset[] | null = null;
+let undoTimeoutId: number | null = null;
 let premiumAccess: PremiumAccess | null = null;
 let premiumStatus: PremiumStatus = getPremiumStatus(
   {
@@ -525,18 +591,60 @@ function renderPresets(): void {
     return;
   }
 
+  if (emptyPresetsMessage) {
+    emptyPresetsMessage.hidden = presets.length > 0;
+  }
+
   presetList.replaceChildren(
     ...presets.map((preset) => {
+      const item = document.createElement("span");
       const button = document.createElement("button");
+      const deleteButton = document.createElement("button");
+      const isConfirmingDelete = pendingDeletePresetId === preset.id;
+
+      item.className = "preset-item";
       button.className = "preset-button";
       button.type = "button";
       button.textContent = preset.label;
+      button.dataset.action = "select";
       button.dataset.totalSeconds = String(preset.totalSeconds);
       button.setAttribute("aria-label", formatMessage(messages.presetButtonLabel, { TIME: preset.label }));
 
-      return button;
+      deleteButton.className = `preset-delete-button${isConfirmingDelete ? " is-confirming" : ""}`;
+      deleteButton.type = "button";
+      deleteButton.textContent = isConfirmingDelete ? messages.confirmDeletePresetButton : messages.deletePresetButton;
+      deleteButton.dataset.action = "delete";
+      deleteButton.dataset.presetId = preset.id;
+      deleteButton.setAttribute("aria-label", formatMessage(messages.deletePresetLabel, { TIME: preset.label }));
+
+      item.append(button, deleteButton);
+
+      return item;
     }),
   );
+}
+
+function renderPresetAction(message = ""): void {
+  if (!presetActionMessage) {
+    return;
+  }
+
+  presetActionMessage.replaceChildren();
+  presetActionMessage.hidden = message.length === 0;
+
+  if (message.length === 0) {
+    return;
+  }
+
+  const text = document.createElement("span");
+  const undoButton = document.createElement("button");
+
+  text.textContent = message;
+  undoButton.className = "undo-button";
+  undoButton.type = "button";
+  undoButton.textContent = messages.undoDeletePresetButton;
+  undoButton.dataset.action = "undo-delete";
+  presetActionMessage.append(text, undoButton);
 }
 
 function applyTheme(themeId: TimerThemeId): void {
@@ -681,6 +789,54 @@ function startTicking(): void {
   }, 1000);
 }
 
+async function deletePresetWithUndo(presetId: string): Promise<void> {
+  const deletedPreset = presets.find((preset) => preset.id === presetId);
+
+  if (!deletedPreset) {
+    pendingDeletePresetId = null;
+    renderPresets();
+    return;
+  }
+
+  if (undoTimeoutId !== null) {
+    window.clearTimeout(undoTimeoutId);
+    undoTimeoutId = null;
+  }
+
+  undoPresetsSnapshot = presets;
+  pendingDeletePresetId = null;
+  presets = removeTimerPreset(presets, presetId);
+  await setTimerPresets(presets);
+  renderPresets();
+  refreshPremiumUi();
+  renderPresetAction(formatMessage(messages.presetDeletedMessage, { TIME: deletedPreset.label }));
+
+  undoTimeoutId = window.setTimeout(() => {
+    undoPresetsSnapshot = null;
+    undoTimeoutId = null;
+    renderPresetAction();
+  }, 5000);
+}
+
+async function undoPresetDelete(): Promise<void> {
+  if (!undoPresetsSnapshot) {
+    renderPresetAction();
+    return;
+  }
+
+  if (undoTimeoutId !== null) {
+    window.clearTimeout(undoTimeoutId);
+    undoTimeoutId = null;
+  }
+
+  presets = undoPresetsSnapshot;
+  undoPresetsSnapshot = null;
+  await setTimerPresets(presets);
+  renderPresetAction();
+  renderPresets();
+  refreshPremiumUi();
+}
+
 minutesInput?.addEventListener("input", syncTimerFromInputs);
 secondsInput?.addEventListener("input", syncTimerFromInputs);
 startButton?.addEventListener("click", () => {
@@ -705,7 +861,30 @@ resetButton?.addEventListener("click", () => {
   updateTimerDisplay(view);
 });
 presetList?.addEventListener("click", (event) => {
-  const presetButton = (event.target as Element).closest<HTMLButtonElement>(".preset-button");
+  const clickedButton = (event.target as Element).closest<HTMLButtonElement>("button");
+
+  if (!clickedButton) {
+    return;
+  }
+
+  if (clickedButton.dataset.action === "delete") {
+    const presetId = clickedButton.dataset.presetId;
+
+    if (!presetId) {
+      return;
+    }
+
+    if (pendingDeletePresetId === presetId) {
+      void deletePresetWithUndo(presetId);
+      return;
+    }
+
+    pendingDeletePresetId = presetId;
+    renderPresets();
+    return;
+  }
+
+  const presetButton = clickedButton.closest<HTMLButtonElement>(".preset-button");
 
   if (!presetButton) {
     return;
@@ -721,6 +900,15 @@ presetList?.addEventListener("click", (event) => {
   void setLastTimerDurationSeconds(view.totalSeconds);
   writeDurationInputs(view);
   updateTimerDisplay(view);
+});
+presetActionMessage?.addEventListener("click", (event) => {
+  const undoButton = (event.target as Element).closest<HTMLButtonElement>('[data-action="undo-delete"]');
+
+  if (!undoButton) {
+    return;
+  }
+
+  void undoPresetDelete();
 });
 presetList?.addEventListener("keydown", (event) => {
   if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") {

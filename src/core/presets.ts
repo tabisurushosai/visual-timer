@@ -46,7 +46,7 @@ export function normalizeTimerPresets(value: unknown): TimerPreset[] {
   const uniqueSeconds = Array.from(new Set(secondsList.map(normalizeDurationSeconds)));
   const limitedSeconds = uniqueSeconds.slice(0, MAX_PRESET_COUNT);
 
-  return limitedSeconds.length > 0 ? limitedSeconds.map(createTimerPreset) : getDefaultTimerPresets();
+  return limitedSeconds.map(createTimerPreset);
 }
 
 export function addTimerPreset(presets: readonly TimerPreset[], totalSeconds: number, maxPresetCount = MAX_PRESET_COUNT): TimerPreset[] {
@@ -54,4 +54,8 @@ export function addTimerPreset(presets: readonly TimerPreset[], totalSeconds: nu
   const withoutDuplicate = presets.filter((preset) => preset.totalSeconds !== nextPreset.totalSeconds);
 
   return normalizeTimerPresets([nextPreset, ...withoutDuplicate]).slice(0, maxPresetCount);
+}
+
+export function removeTimerPreset(presets: readonly TimerPreset[], presetId: string): TimerPreset[] {
+  return normalizeTimerPresets(presets.filter((preset) => preset.id !== presetId));
 }
